@@ -35,20 +35,160 @@ interface AgentResult {
   test_command?: string;
 }
 
+const DEMO_TASK = 'Fix the corrupted payment gateway implementation and preserve all payment contract tests.';
+
+const DEMO_AGENTS: Agent[] = [
+  { id: 'sm-refactor', strategy: 'Locale Validation Layer', status: 'idle', timing: null, exitCode: null },
+  { id: 'sm-patch', strategy: 'Guard Clause Fix', status: 'idle', timing: null, exitCode: null },
+  { id: 'sm-tdd', strategy: 'Contract-First Rewrite', status: 'idle', timing: null, exitCode: null },
+];
+
+const BROKEN_PAYMENT_CODE = `# src/payment_gateway.py
+
+def get_cart_total(cart):
+    return sum(item["price"] for item in cart["items"])
+
+def process_payment(cart, user_locale):
+    if user_locale == "US" and cart["currency"] != "USD":
+        raise ValueError("Currency mismatch")
+
+    return {
+        "success": True,
+        "total": get_cart_total(cart),
+        "currency": cart["currency"],
+    }
+`;
+
+const PATCH_PAYMENT_CODE = `# src/payment_gateway.py
+
+def get_cart_total(cart):
+    return sum(item.get("price", item.get("unit_price", 0)) for item in cart["items"])
+
+def process_payment(cart, user_locale):
+    locale_currency = {"US": "USD", "IN": "INR", "GB": "GBP", "DE": "EUR", "FR": "EUR"}
+    expected = locale_currency.get(user_locale)
+    if expected and cart["currency"] != expected:
+        raise ValueError("Currency mismatch")
+
+    return {
+        "success": True,
+        "total": get_cart_total(cart),
+        "currency": cart["currency"],
+    }
+`;
+
+const REFACTOR_PAYMENT_CODE = `# src/payment_gateway.py
+
+LOCALE_RULES = {
+    "US": "USD",
+    "IN": "INR",
+    "GB": "GBP",
+    "DE": "EUR",
+    "FR": "EUR",
+}
+
+def get_cart_total(cart):
+    return float(sum(item.get("price", item.get("unit_price", 0)) for item in cart.get("items", [])))
+
+def process_payment(cart, user_locale):
+    expected = LOCALE_RULES.get(str(user_locale).upper())
+    if expected and str(cart.get("currency", "")).upper() != expected:
+        raise ValueError(f"Currency mismatch: expected {expected}")
+    return {"success": True, "total": get_cart_total(cart), "currency": cart.get("currency")}
+`;
+
+const TDD_PAYMENT_CODE = `# src/payment_gateway.py
+
+LOCALE_CURRENCY_RULES = {
+    "US": "USD",
+    "IN": "INR",
+    "GB": "GBP",
+    "DE": "EUR",
+    "FR": "EUR",
+}
+
+def get_cart_total(cart):
+    total = 0
+    for item in cart.get("items", []):
+        total += item.get("price", item.get("unit_price", 0))
+    return float(total)
+
+def process_payment(cart, user_locale):
+    expected = LOCALE_CURRENCY_RULES.get(str(user_locale).upper())
+    currency = str(cart.get("currency", "")).upper()
+
+    if expected and currency != expected:
+        raise ValueError(
+            f"Currency mismatch: locale {user_locale} requires {expected}, got {cart.get('currency')}"
+        )
+
+    return {
+        "success": True,
+        "total": get_cart_total(cart),
+        "currency": cart.get("currency"),
+    }
+`;
+
+const TEST_OUTPUT = `============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_payments.py::test_valid_usd_payment PASSED                    [ 33%]
+tests/test_payments.py::test_eu_locales_raise_error PASSED               [ 66%]
+tests/test_payments.py::test_cart_total_supports_unit_price PASSED       [100%]
+
+============================== 3 passed in 0.05s ==============================`;
+
+const DEMO_RESULTS: Record<string, AgentResult> = {
+  'sm-refactor': {
+    strategy: 'Locale Validation Layer',
+    broken_code: BROKEN_PAYMENT_CODE,
+    fixed_code: REFACTOR_PAYMENT_CODE,
+    test_output: TEST_OUTPUT,
+    exit_code: 0,
+    timing: 7.6,
+    branch: 'sm-refactor',
+    target_file: 'src/payment_gateway.py',
+    test_command: 'pytest tests/ -v --tb=short --no-header',
+  },
+  'sm-patch': {
+    strategy: 'Guard Clause Fix',
+    broken_code: BROKEN_PAYMENT_CODE,
+    fixed_code: PATCH_PAYMENT_CODE,
+    test_output: TEST_OUTPUT,
+    exit_code: 0,
+    timing: 5.9,
+    branch: 'sm-patch',
+    target_file: 'src/payment_gateway.py',
+    test_command: 'pytest tests/ -v --tb=short --no-header',
+  },
+  'sm-tdd': {
+    strategy: 'Contract-First Rewrite',
+    broken_code: BROKEN_PAYMENT_CODE,
+    fixed_code: TDD_PAYMENT_CODE,
+    test_output: TEST_OUTPUT,
+    exit_code: 0,
+    timing: 5.9,
+    branch: 'sm-tdd',
+    target_file: 'src/payment_gateway.py',
+    test_command: 'pytest tests/ -v --tb=short --no-header',
+  },
+};
+
 export default function Home() {
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ stage: 'idle' });
   const [isPolling, setIsPolling] = useState<boolean>(true);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   const [task, setTask] = useState<string>('');
-  const [isLaunching, setIsLaunching] = useState<boolean>(false);
   const [agentResults, setAgentResults] = useState<Record<string, AgentResult>>({});
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const terminalRef = useRef<HTMLDivElement>(null);
+  const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    if (!isPolling) return;
+    if (!isPolling || isDemoMode) return;
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/state');
@@ -71,7 +211,13 @@ export default function Home() {
       } catch { }
     }, 500);
     return () => clearInterval(interval);
-  }, [isPolling]);
+  }, [isPolling, isDemoMode]);
+
+  useEffect(() => {
+    return () => {
+      demoTimersRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -79,26 +225,101 @@ export default function Home() {
     }
   }, [workflowState]);
 
-  const launchSwarm = async () => {
+  const launchSwarm = () => {
     if (!task.trim() || isLaunching) return;
-    setIsLaunching(true);
+    playDemo(task.trim());
+  };
+
+  const scheduleDemoState = (
+    delay: number,
+    state: WorkflowState,
+    results?: Record<string, AgentResult>,
+    selectedAgent?: string,
+  ) => {
+    const timer = setTimeout(() => {
+      setWorkflowState(state);
+      if (results) {
+        setAgentResults(results);
+      }
+      if (selectedAgent) {
+        setSelectedAgentId(selectedAgent);
+      }
+    }, delay);
+    demoTimersRef.current.push(timer);
+  };
+
+  const playDemo = (promptText = DEMO_TASK) => {
+    if (workflowState.stage !== 'idle' || isLaunching) return;
+
+    const demoTask = promptText.trim() || DEMO_TASK;
+    demoTimersRef.current.forEach(clearTimeout);
+    demoTimersRef.current = [];
+    setIsDemoMode(true);
+    setIsPolling(false);
+    setTask(demoTask);
     setSidebarOpen(false);
     setSelectedAgentId(null);
     setAgentResults({});
-    try {
-      await fetch('/api/launch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task }),
-      });
-    } catch (e) {
-      console.error('Launch failed:', e);
-    } finally {
-      setIsLaunching(false);
-    }
+
+    const runningAgents = DEMO_AGENTS.map(agent => ({ ...agent, status: 'running' as AgentStatus }));
+    const testingAgents = DEMO_AGENTS.map(agent => ({ ...agent, status: 'testing' as AgentStatus }));
+    const finishedAgents: Agent[] = [
+      { ...DEMO_AGENTS[0], status: 'failed', timing: 7.6, exitCode: 0 },
+      { ...DEMO_AGENTS[1], status: 'failed', timing: 5.9, exitCode: 0 },
+      { ...DEMO_AGENTS[2], status: 'success', timing: 5.9, exitCode: 0 },
+    ];
+
+    scheduleDemoState(0, {
+      stage: 'branching',
+      task: demoTask,
+      agents: DEMO_AGENTS,
+      winnerID: null,
+    });
+
+    scheduleDemoState(900, {
+      stage: 'executing',
+      task: demoTask,
+      agents: runningAgents,
+      winnerID: null,
+    });
+
+    scheduleDemoState(1900, {
+      stage: 'testing',
+      task: demoTask,
+      agents: testingAgents,
+      winnerID: null,
+    });
+
+    scheduleDemoState(
+      3200,
+      {
+        stage: 'results',
+        task: demoTask,
+        agents: finishedAgents,
+        winnerID: 'sm-tdd',
+      },
+      DEMO_RESULTS,
+      'sm-tdd',
+    );
+
+    scheduleDemoState(
+      4400,
+      {
+        stage: 'merging',
+        task: demoTask,
+        agents: finishedAgents,
+        winnerID: 'sm-tdd',
+      },
+      DEMO_RESULTS,
+      'sm-tdd',
+    );
   };
 
   const resetDashboard = async () => {
+    demoTimersRef.current.forEach(clearTimeout);
+    demoTimersRef.current = [];
+    setIsDemoMode(false);
+    setIsPolling(true);
     try {
       await fetch('/api/state', {
         method: 'POST',
@@ -118,6 +339,7 @@ export default function Home() {
   };
 
   const hasResults = Object.keys(agentResults).length > 0;
+  const isLaunching = false;
   const agents = workflowState.agents ?? [];
   const allAgentsFinished = agents.length > 0 &&
     agents.every(agent => agent.status === 'success' || agent.status === 'failed');
@@ -181,7 +403,7 @@ export default function Home() {
                         border border-slate-700 shadow-2xl flex gap-3 items-center">
           <div className="font-mono text-sm text-slate-500 px-3 flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
-            Live Telemetry
+            {isDemoMode ? 'Hosted Demo Replay' : 'Live Telemetry'}
           </div>
           <button
             onClick={() => setIsPolling(p => !p)}
