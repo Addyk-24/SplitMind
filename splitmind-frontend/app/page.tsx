@@ -317,7 +317,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col bg-[#0a0f1e]">
 
       {/* Task input bar */}
-      <div className="w-full px-6 pt-4 pb-3 border-b border-slate-800 flex gap-3 items-center">
+      <div className="w-full px-5 pt-3 pb-3 border-b border-slate-800 flex gap-3 items-center">
         <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
         <input
           type="text"
@@ -326,7 +326,7 @@ export default function Home() {
           onKeyDown={e => e.key === 'Enter' && launchSwarm()}
           placeholder="Describe the bug or task — e.g. Fix critical payment currency bug for IN locale"
           disabled={workflowState.stage !== 'idle' || isLaunching}
-          className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm
+          className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-[13px]
                      font-mono text-slate-200 placeholder:text-slate-600
                      focus:outline-none focus:border-sky-600
                      disabled:opacity-50 disabled:cursor-not-allowed"
@@ -334,7 +334,7 @@ export default function Home() {
         <button
           onClick={launchSwarm}
           disabled={!task.trim() || workflowState.stage !== 'idle' || isLaunching}
-          className="flex items-center gap-2 px-5 py-2 bg-sky-600 hover:bg-sky-500
+          className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500
                      disabled:bg-slate-700 disabled:text-slate-500
                      text-white text-sm font-bold rounded-xl transition"
         >
@@ -355,7 +355,7 @@ export default function Home() {
       </div>
 
       {/* Graph canvas */}
-      <div className="flex-grow w-full h-[65vh] border-b border-slate-800 relative">
+      <div className="flex-grow w-full h-[70vh] min-h-[500px] border-b border-slate-800 relative">
         <SplitMindVisualizer
           workflowState={workflowState}
           onNodeClick={(agentId: string) => {
@@ -363,18 +363,18 @@ export default function Home() {
           }}
         />
 
-        <div className="absolute bottom-6 right-6 z-20 bg-slate-900/90 p-3 rounded-2xl
+        <div className="absolute bottom-5 right-5 z-20 bg-slate-900/90 p-2.5 rounded-xl
                         border border-slate-700 shadow-2xl flex gap-3 items-center">
-          <div className="font-mono text-sm text-slate-500 px-3 flex items-center gap-2">
+          <div className="font-mono text-xs text-slate-500 px-2 flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
             {isDemoMode ? 'Hosted Demo Replay' : 'Demo Ready'}
           </div>
           <button
             onClick={resetDashboard}
-            className="p-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition"
+            className="p-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition"
             title="Reset Dashboard"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -382,7 +382,7 @@ export default function Home() {
       {/* Terminal */}
       <div
         ref={terminalRef}
-        className="h-[20vh] w-full bg-black p-4 font-mono text-sm text-emerald-400
+        className="h-[17vh] min-h-[135px] w-full bg-black p-3 font-mono text-[13px] text-emerald-400
                    overflow-y-auto border-t border-slate-800"
       >
         <p className="text-slate-600 mb-2">{'// SplitMind Live Telemetry Stream'}</p>

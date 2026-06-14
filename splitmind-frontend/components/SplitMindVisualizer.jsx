@@ -18,11 +18,11 @@ import {
 import { twMerge } from 'tailwind-merge';
 
 //  LAYOUT 
-const X_START = 80;
-const X_AGENTS = 460;
-const X_FINAL = 860;
-const Y_CENTER = 280;
-const Y_GAP = 190;
+const X_START = 220;
+const X_AGENTS = 550;
+const X_FINAL = 880;
+const Y_CENTER = 260;
+const Y_GAP = 145;
 
 const nodeDefaults = { sourcePosition: Position.Right, targetPosition: Position.Left };
 
@@ -83,7 +83,7 @@ const AgentNode = ({ data }) => {
 
     return (
         <div className={twMerge(
-            'px-4 py-3 rounded-xl border-2 shadow-2xl backdrop-blur-sm min-w-[230px] transition-all duration-300',
+            'px-3 py-2.5 rounded-lg border-2 shadow-2xl backdrop-blur-sm w-[220px] transition-all duration-300',
             colors[data.status] ?? colors.idle,
             clickable ? 'cursor-pointer hover:ring-1 hover:ring-white/30' : '',
         )}>
@@ -94,10 +94,10 @@ const AgentNode = ({ data }) => {
                     <div className="font-mono text-[10px] uppercase text-slate-500 truncate">
                         {data.strategy || 'MAIN BRANCH'}
                     </div>
-                    <div className="font-bold text-sm tracking-tight truncate">
+                    <div className="font-bold text-[13px] tracking-tight truncate">
                         {data.status === 'idle' ? 'Awaiting task…' : data.label}
                     </div>
-                    <div className="text-xs italic opacity-70 mt-0.5 truncate">
+                    <div className="text-[11px] italic opacity-70 mt-0.5 truncate">
                         {detail}
                     </div>
                 </div>
@@ -129,11 +129,17 @@ const INITIAL_NODES = [{
 export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
     const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const flowRef = useRef(null);
 
     // Refs — always fresh, never stale in effects
     const yMapRef = useRef({});   // agentId → Y coordinate, set at branching
     const mergeDrawnRef = useRef(false); // guard: only draw final node once
     const prevStageRef = useRef('idle');
+    const fitGraph = useCallback(() => {
+        window.setTimeout(() => {
+            flowRef.current?.fitView({ padding: 0.24, maxZoom: 0.9, duration: 350 });
+        }, 120);
+    }, []);
 
     useEffect(() => {
         if (!workflowState) return;
@@ -147,6 +153,7 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
             yMapRef.current = {};
             mergeDrawnRef.current = false;
             prevStageRef.current = 'idle';
+            fitGraph();
             return;
         }
 
@@ -187,6 +194,7 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
 
             setNodes(nds => [...nds, ...agentNodes]);
             setTimeout(() => setEdges(branchEdges), 100);
+            fitGraph();
             return;
         }
 
@@ -210,6 +218,7 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
                     },
                 };
             }));
+            fitGraph();
 
             // Colour edges once results are known
             if (stage === 'results' || stage === 'merging') {
@@ -262,6 +271,7 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
 
                     setNodes(nds => [...nds, finalNode]);
                     setTimeout(() => setEdges(eds => [...eds, mergeEdge]), 200);
+                    fitGraph();
                 } else {
                     // yMapRef not populated yet (branching fired before this component mounted)
                     // Fallback: rebuild yMap from current nodes
@@ -286,10 +296,11 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
                     });
                     setNodes(nds => [...nds, finalNode]);
                     setTimeout(() => setEdges(eds => [...eds, mergeEdge]), 200);
+                    fitGraph();
                 }
             }
         }
-    }, [workflowState]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [workflowState, fitGraph]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleNodeClick = useCallback((_, node) => {
         if (onNodeClick && node.data?.hasResult) onNodeClick(node.id);
@@ -307,17 +318,27 @@ export default function SplitMindVisualizer({ workflowState, onNodeClick }) {
                 nodes={nodes} edges={edges}
                 onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes} onNodeClick={handleNodeClick}
-                fitView className="font-sans" proOptions={{ hideAttribution: true }}
+                fitView
+                fitViewOptions={{ padding: 0.24, maxZoom: 0.9 }}
+                minZoom={0.35}
+                maxZoom={1.15}
+                nodesDraggable={false}
+                onInit={(instance) => {
+                    flowRef.current = instance;
+                    fitGraph();
+                }}
+                className="font-sans"
+                proOptions={{ hideAttribution: true }}
             >
                 <Background color="#1e293b" gap={20} size={1} />
 
-                <div className="absolute top-4 left-4 z-10 bg-slate-900/80 p-4 rounded-xl
-                        border border-slate-700 backdrop-blur-sm shadow-xl">
+                <div className="absolute top-4 left-4 z-10 bg-slate-900/80 p-3 rounded-lg
+                        border border-slate-700 backdrop-blur-sm shadow-xl max-w-[300px]">
                     <div className="flex items-center gap-2 mb-1">
-                        <BrainCircuit className="w-6 h-6 text-sky-400" />
-                        <h1 className="text-xl font-bold tracking-tighter">SplitMind</h1>
+                        <BrainCircuit className="w-5 h-5 text-sky-400" />
+                        <h1 className="text-lg font-bold tracking-tighter">SplitMind</h1>
                     </div>
-                    <p className="text-xs text-slate-400 max-w-[260px]">
+                    <p className="text-[11px] leading-snug text-slate-400">
                         Worktree swarms. Parallel strategies. Deterministic evals pick the winner.
                     </p>
                     <div className="mt-2 text-xs px-2 py-1 inline-block bg-slate-800
