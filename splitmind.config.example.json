@@ -1,0 +1,8 @@
+{
+  "repo_dir": "D:/HACKS/codex hackathon/ecommerce_demo",
+  "target_file": "src/payment_gateway.py",
+  "test_command": "pytest tests/ -v --tb=short --no-header",
+  "results_dir": "D:/HACKS/codex hackathon/ecommerce_demo",
+  "base_branch": "main",
+  "strategies": "Locale Validation Layer|Guard Clause Fix|Contract-First Rewrite"
+}
