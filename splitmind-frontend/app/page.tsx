@@ -176,7 +176,6 @@ const DEMO_RESULTS: Record<string, AgentResult> = {
 
 export default function Home() {
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ stage: 'idle' });
-  const [isPolling, setIsPolling] = useState<boolean>(true);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   const [task, setTask] = useState<string>('');
   const [agentResults, setAgentResults] = useState<Record<string, AgentResult>>({});
@@ -186,32 +185,7 @@ export default function Home() {
 
   const terminalRef = useRef<HTMLDivElement>(null);
   const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    if (!isPolling || isDemoMode) return;
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/state');
-        if (!res.ok) return;
-        const data = await res.json();
-        setWorkflowState(data);
-
-        if (data.stage === 'results' || data.stage === 'merging') {
-          const rRes = await fetch('/api/results');
-          if (rRes.ok) {
-            const results = await rRes.json();
-            setAgentResults(results);
-            // We load the data, but DO NOT force the sidebar open automatically.
-            // We just ensure a tab is selected in the background so it's ready.
-            if (Object.keys(results).length > 0) {
-              setSelectedAgentId(prev => prev ?? Object.keys(results)[0]);
-            }
-          }
-        }
-      } catch { }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [isPolling, isDemoMode]);
+  const isLaunching = false;
 
   useEffect(() => {
     return () => {
@@ -255,7 +229,6 @@ export default function Home() {
     demoTimersRef.current.forEach(clearTimeout);
     demoTimersRef.current = [];
     setIsDemoMode(true);
-    setIsPolling(false);
     setTask(demoTask);
     setSidebarOpen(false);
     setSelectedAgentId(null);
@@ -319,18 +292,10 @@ export default function Home() {
     demoTimersRef.current.forEach(clearTimeout);
     demoTimersRef.current = [];
     setIsDemoMode(false);
-    setIsPolling(true);
-    try {
-      await fetch('/api/state', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: 'idle', agents: [] }),
-      });
-      setWorkflowState({ stage: 'idle' });
-      setAgentResults({});
-      setSelectedAgentId(null);
-      setSidebarOpen(false);
-    } catch { }
+    setWorkflowState({ stage: 'idle' });
+    setAgentResults({});
+    setSelectedAgentId(null);
+    setSidebarOpen(false);
   };
 
   const openAgent = (agentId: string) => {
@@ -339,7 +304,6 @@ export default function Home() {
   };
 
   const hasResults = Object.keys(agentResults).length > 0;
-  const isLaunching = false;
   const agents = workflowState.agents ?? [];
   const allAgentsFinished = agents.length > 0 &&
     agents.every(agent => agent.status === 'success' || agent.status === 'failed');
@@ -403,17 +367,8 @@ export default function Home() {
                         border border-slate-700 shadow-2xl flex gap-3 items-center">
           <div className="font-mono text-sm text-slate-500 px-3 flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
-            {isDemoMode ? 'Hosted Demo Replay' : 'Live Telemetry'}
+            {isDemoMode ? 'Hosted Demo Replay' : 'Demo Ready'}
           </div>
-          <button
-            onClick={() => setIsPolling(p => !p)}
-            className={`px-4 py-2 rounded-xl font-bold transition text-sm ${isPolling
-                ? 'bg-amber-600/20 text-amber-500 hover:bg-amber-600/40'
-                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-              }`}
-          >
-            {isPolling ? 'Pause Sync' : 'Resume Sync'}
-          </button>
           <button
             onClick={resetDashboard}
             className="p-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition"
