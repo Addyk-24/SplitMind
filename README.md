@@ -109,4 +109,6 @@ The next step is broader repository support: multiple changed files, configurabl
 
 ## Visual
 
-![SplitMind architecture](splitmind_architecture_status.svg)
+<img width="1665" height="1550" alt="splitmind_architecture_status" src="https://github.com/user-attachments/assets/59dcccdd-2e49-48f7-a0c6-94a5d4b07889" />
+
+<svg width="100%" viewBox="0 0 680 620" role="img" style="" xmlns="http://www.w3.org/2000/svg">
