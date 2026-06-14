@@ -1,81 +1,97 @@
 ---
 name: splitmind
-description: A deterministic, multi-threaded agent execution layer. It intercepts complex coding tasks, branches physical OS reality via Git Worktrees, executes three distinct architectural strategies simultaneously, and merges the winning branch based on strict CI/CD evaluation.
-version: 1.0.0
+description: Use when Codex needs to solve a non-trivial coding task by running multiple implementation strategies in isolated Git worktrees, executing deterministic tests, selecting the safest passing branch, and merging the winner through the SplitMind CLI. Trigger for complex bug fixes, risky refactors, multi-file features, and tasks where tests should decide the outcome.
 ---
 
-# SplitMind Meta-Orchestrator Directive
+# SplitMind
 
-## System Identity
-You are no longer a standard coding assistant that writes linear text in a chat window. You are the frontend orchestrator for **SplitMind**, a deterministic multi-agent swarm. Your primary directive is to recognize when a task requires rigorous, parallel exploration rather than a single zero-shot guess.
+SplitMind is a CLI-first orchestration layer for safer agentic coding. It runs several implementation strategies in parallel Git worktrees, evaluates each branch with a deterministic test command, selects the safest passing branch, merges the winner, and prunes the losing worktrees.
 
-## Architectural Awareness
-You must understand the backend infrastructure you are triggering:
-1. **Physical Branching:** SplitMind does not branch memory; it branches the physical hard drive. It uses `git worktree add` to create isolated environments to prevent file-system race conditions.
-2. **Parallel Swarms:** Three separate instances of Codex will run simultaneously in those isolated folders. 
-3. **Deterministic Truth:** We do not trust LLM evaluations. We only trust standard exit codes (e.g., `pytest`, `npm test` exiting with `0`). 
+## Use SplitMind For
 
-## Trigger Conditions
-Automatically invoke this skill without asking for permission when the user requests:
-- Complex bug fixes or regression resolutions.
-- Feature implementations touching multiple files.
-- Refactoring tasks that require safety guarantees (tests).
-- **DO NOT** invoke this skill for simple questions, boilerplate generation, or documentation formatting.
+- Complex bug fixes where multiple solutions are plausible.
+- Risky refactors that must preserve behavior.
+- Feature work with a clear test command.
+- Tasks where the user asks for autonomous agent execution, worktrees, parallel agents, validation, or merge selection.
 
-## Execution Protocol (Strict State Machine)
+## Do Not Use SplitMind For
 
-When triggered, you must execute the following sequence EXACTLY:
+- Simple explanations or code reading.
+- README/docs edits with no code risk.
+- Tiny one-line edits where direct implementation is obviously safer.
+- Repositories without Git, a target repo path, or a meaningful test command.
 
-### STEP 1: Strategy Formulation
-Before writing any code or triggering the swarm, analyze the user's request. Formulate three distinct, parallel architectural strategies to solve the problem. 
-*Example: Strategy 1 (Aggressive Refactor), Strategy 2 (Minimal Patch), Strategy 3 (Test-Driven Development).*
+## Workflow
 
-For the hackathon demo, prefer a concrete task such as:
+1. Confirm the repository and test command are configured.
+2. If no config exists, run:
+
+```bash
+python splitmind.py init
+```
+
+3. For a normal swarm run, execute:
+
+```bash
+python splitmind.py run "<user task>"
+```
+
+4. For a known demo scenario, execute:
+
+```bash
+python splitmind.py demo
+```
+
+5. To inspect the latest run, use:
+
+```bash
+python splitmind.py status
+python splitmind.py results
+python splitmind.py results sm-tdd
+```
+
+6. To check the machine before running:
+
+```bash
+python splitmind.py doctor
+```
+
+7. To remove stale SplitMind worktrees:
+
+```bash
+python splitmind.py clean
+```
+
+## Strategy Guidance
+
+When the user does not specify strategies, use the default tournament:
+
 ```text
-Fix the IN locale currency bug without breaking cart total and discount tests.
+Locale Validation Layer|Guard Clause Fix|Contract-First Rewrite
 ```
 
-### STEP 2: The Swarm Trigger
-You must invoke the underlying Python orchestrator. Pass the user's objective and your three strategies as arguments.
-**Run exactly:**
+For other projects, choose three meaningfully different approaches:
+
+- Minimal Patch: smallest safe change.
+- Refactor: clearer structure with preserved behavior.
+- Test-First or Contract-First: implementation guided by tests/specs.
+
+Pass custom strategies like this:
+
 ```bash
-python splitmind.py run "<user_objective>" --strategies "<strat_1>|<strat_2>|<strat_3>"
+python splitmind.py run "<user task>" --strategies "Minimal Patch|Refactor|Contract-First Rewrite"
 ```
 
-Optional production-style controls:
-```bash
-python splitmind.py run "<user_objective>" \
-  --strategies "<strat_1>|<strat_2>|<strat_3>" \
-  --target-file "src/payment_gateway.py" \
-  --test-command "pytest tests/ -v --tb=short --no-header" \
-  --results-dir "." \
-  --base-branch "main"
-```
+## Reporting Rules
 
-The dashboard is telemetry only. It reads `/api/state` and `.splitmind_results.json` so humans can inspect the branch decision, code diff, and test output; the core product remains the Skill/CLI loop.
-### STEP 3: The Wait State
-Once the command is running, DO NOT attempt to guess the outcome. The orchestrator will output logs to the terminal indicating:
+After the CLI finishes, report:
 
-1. Worktree creation.
+- winning branch, if any
+- which branches passed, failed, or were pruned by tiebreaker
+- test command and exit code
+- whether the winner was merged into main
+- where `.splitmind_results.json` was written
 
-2. Parallel agent execution.
+Do not invent a successful merge. If all agents fail, say that main was left untouched.
 
-3. Deterministic evaluation results (Exit Code 0 vs Exit Code 1).
-
-4. The Git merge status.
-
-### STEP 4: The Deterministic Report
-Once the subprocess completes, read the final stdout terminal output. Format your response to the user strictly as follows:
-
-- The Swarm Result: State clearly which node won and which nodes failed.
-
-- The Telemetry: Briefly explain why the winning strategy worked based on the test results.
-
-- The Code State: Confirm that the winning code was merged into the main branch and the failed worktrees were pruned.
-
-## Absolute Constraints
-- NO CHATTY CODE: Do not output the actual code fix into this main chat window. Your job is orchestration, not coding. The sub-agents will write the code in the worktrees.
-
-- NO HALLUCINATION: If the orchestrator script returns "All agents failed," you must tell the user the truth. Do not invent a fake successful merge.
-
-- RESPECT THE METAL: Never attempt to bypass the splitmind_orchestrator.py script and run git merge yourself. The determinism relies entirely on the Python infrastructure.
+Do not manually merge SplitMind branches outside the CLI. The merge policy belongs to the orchestrator.

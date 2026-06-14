@@ -1,16 +1,17 @@
-<<<<<<< HEAD
 .env
 .env.local
 .splitmind.json
 .splitmind_results.json
+.splitmind_run/
 
 backend/.env
 backend/.venv/
+adapters/claude
+adapters/cursor
 
 splitmind-frontend/.env.local
 splitmind-frontend/.next/
 splitmind-frontend/node_modules/
-=======
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -229,4 +230,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
->>>>>>> 5e182515a85c630fb2c52f401d45bd6fa740a1a2

@@ -21,18 +21,20 @@ SplitMind treats coding as a tournament:
 
 This brings ideas from beam search, tournament selection, and CI-driven validation into Codex-style software work.
 
-## Demo Command
+## CLI
 
-Use this task during judging:
+SplitMind is controlled from the CLI. The web dashboard is optional telemetry; the CLI is the product surface that owns worktrees, tests, winner selection, and merge policy.
 
-```text
-Fix the IN locale currency bug without breaking cart total and discount tests.
-```
-
-Primary CLI:
+Initialize local config:
 
 ```bash
-python splitmind.py run "Fix the IN locale currency bug without breaking cart total and discount tests"
+python splitmind.py init
+```
+
+Run a swarm:
+
+```bash
+python splitmind.py run "Fix the corrupted payment gateway implementation and preserve all payment contract tests."
 ```
 
 Prepared demo shortcut:
@@ -41,11 +43,30 @@ Prepared demo shortcut:
 python splitmind.py demo
 ```
 
-Config-driven run:
+Inspect the latest run:
 
 ```bash
-copy splitmind.config.example.json .splitmind.json
-python splitmind.py run
+python splitmind.py status
+python splitmind.py results
+python splitmind.py results sm-tdd
+```
+
+Check the local machine:
+
+```bash
+python splitmind.py doctor
+```
+
+Clean stale worktrees:
+
+```bash
+python splitmind.py clean
+```
+
+Use this task during judging:
+
+```text
+Fix the corrupted payment gateway implementation and preserve all payment contract tests.
 ```
 
 Low-level orchestrator command:
@@ -95,11 +116,32 @@ npm run dev
 
 Then open `http://localhost:3000`.
 
+## Agent Adapters
+
+SplitMind can be exposed to different agentic coding tools as a thin instruction layer over the same CLI:
+
+- Codex Skill: `my-skill/SKILL.md` or `adapters/codex/SKILL.md`
+- Claude project command/instruction: `adapters/claude/splitmind.md`
+- Cursor rule: `adapters/cursor/splitmind.mdc`
+
+All adapters route complex coding tasks back to:
+
+```bash
+python splitmind.py run "<task>"
+```
+
+This keeps the merge policy, test validation, and worktree cleanup centralized in the CLI instead of duplicating behavior across editors.
+
 ## Current Prototype Scope
 
 The hackathon prototype demonstrates the full loop on a controlled payment bug scenario. The CLI already exposes the important generalization points:
 
 - `python splitmind.py run`
+- `python splitmind.py init`
+- `python splitmind.py status`
+- `python splitmind.py results`
+- `python splitmind.py doctor`
+- `python splitmind.py clean`
 - `.splitmind.json`
 - `--strategies`
 - `--target-file`

@@ -144,6 +144,10 @@ def parse_strategies(raw: str | None) -> list[tuple[str, str]]:
     if not names:
         return DEFAULT_STRATEGIES
 
+    default_names = [strategy for _, strategy in DEFAULT_STRATEGIES]
+    if names == default_names:
+        return DEFAULT_STRATEGIES
+
     return [(f"sm-{index + 1}", name) for index, name in enumerate(names)]
 
 
