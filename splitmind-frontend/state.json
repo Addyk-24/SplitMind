@@ -1,0 +1,28 @@
+{
+  "stage": "idle",
+  "agents": [
+    {
+      "id": "sm-refactor",
+      "strategy": "Locale Validation Layer",
+      "status": "idle",
+      "timing": null,
+      "exitCode": null
+    },
+    {
+      "id": "sm-patch",
+      "strategy": "Guard Clause Fix",
+      "status": "idle",
+      "timing": null,
+      "exitCode": null
+    },
+    {
+      "id": "sm-tdd",
+      "strategy": "Contract-First Rewrite",
+      "status": "idle",
+      "timing": null,
+      "exitCode": null
+    }
+  ],
+  "task": "Fix the corrupted payment gateway implementation and preserve all payment contract tests.",
+  "winnerID": null
+}
