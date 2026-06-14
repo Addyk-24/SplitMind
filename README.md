@@ -73,6 +73,8 @@ User task
   -> Merge to main
   -> Prune non-winning worktrees
 ```
+<img width="1400" height="677" alt="diagram-export-6-14-2026-5_27_37-PM" src="https://github.com/user-attachments/assets/a4ebdfa4-eee5-4663-869c-cc1a60b82591" />
+
 
 ## Dashboard
 
